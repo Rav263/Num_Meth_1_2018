@@ -51,7 +51,7 @@ void string_diff(double *string_1, double *string_2, int n, double coof) {
 }
 
 // Прямой ход метода Гауса
-void gauss_direct_way(double **matrix, double *sol, int n) {
+void gauss_direct_way(double **matrix, double *right, int n) {
     for (int i = 0; i < n - 1; i++) {
         if (matrix[i][i] == 0) {
             int index = i + 1;
@@ -63,6 +63,12 @@ void gauss_direct_way(double **matrix, double *sol, int n) {
             double *tmp = matrix[index];
             matrix[index] = matrix[i];
             matrix[i] = tmp;
+
+            if (right != NULL) {
+                double num_tmp = right[index];
+                right[index] = right[i];
+                right[i] = right[index];
+            }
         }
     
         print_matrix(matrix, n);
@@ -71,14 +77,23 @@ void gauss_direct_way(double **matrix, double *sol, int n) {
             double coof = matrix[j][i] / matrix[i][i];        
             printf("Coof: %lf\n J: %d\n", coof, j); 
             string_diff(matrix[j], matrix[i], n, coof);
+            if (right != NULL) right[j] -= right[i] * coof;
         }
     }
     print_matrix(matrix, n);
 }
 
 // Обратный ход метзода Гауса
-void gauss_return_way(double **matrix, double *sol, int n) {
-    
+double *gauss_return_way(double **matrix, double *right, int n) {
+    double *answer = calloc(n, sizeof(*answer));
+    for (int i = n - 1; i>= 0; i--) {
+        answer[i] = right[i];
+
+        for (int j = i + 1; j < n; j++) {
+            answer[i] -= matrix[i][j] * answer[j];
+        }
+        answer[i] /= matrix[i][i];
+    }
 }
 
 // Подсчёт определителя
@@ -92,6 +107,12 @@ double det(double **matrix, int n) {
     }
 
     return result;
+}
+
+double *gauss(double **matrix, double *right, int n) {
+    gauss_direct_way(matrix, right, n);
+
+    return gauss_return_way(matrix, right, n);
 }
 
 double **copy_matrix(double **matrix, int n) {
