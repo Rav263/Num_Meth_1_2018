@@ -35,11 +35,13 @@ void print_matrix(double **matrix, int n) {
 
 
 // Чтение матрицы
-void scan_matrix(double **matrix, int n) {
+void scan_matrix(double **matrix, double *right, int n) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             scanf("%lf", &matrix[i][j]);
         }
+
+        scanf("%lf", &right[i]);
     }
 }
 
@@ -50,8 +52,17 @@ void string_diff(double *string_1, double *string_2, int n, double coof) {
     }
 }
 
+
+// умножение строки на коэффицент
+void string_mult(double *string, int n, double coof) {
+    for (int i = 0; i < n; i++) {
+        string[i] *= coof;
+    }
+}
+
+
 // Прямой ход метода Гауса
-void gauss_direct_way(double **matrix, double *right, int n) {
+void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n) {
     for (int i = 0; i < n - 1; i++) {
         if (matrix[i][i] == 0) {
             int index = i + 1;
@@ -59,46 +70,78 @@ void gauss_direct_way(double **matrix, double *right, int n) {
             for (; index < n; index++) {
                 if (matrix[index][i] != 0) break;
             }
+            if (index == n) continue;
 
             double *tmp = matrix[index];
             matrix[index] = matrix[i];
             matrix[i] = tmp;
 
+            // Для случая поиска обратной матрицы
+            if (rev_matrix != NULL) {
+                tmp = rev_matrix[index];
+                rev_matrix[index] = rev_matrix[i];
+                rev_matrix[i] = tmp;
+            }
+
+            // Для случая решения СЛАУ
             if (right != NULL) {
                 double num_tmp = right[index];
                 right[index] = right[i];
-                right[i] = right[index];
+                right[i] = num_tmp;
             }
         }
-    
-        print_matrix(matrix, n);
+
+        //if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
 
         for (int j = i + 1; j < n; j++) {
             double coof = matrix[j][i] / matrix[i][i];        
-            printf("Coof: %lf\n J: %d\n", coof, j); 
+            //printf("Coof: %lf\n J: %d\n", coof, j); 
+            if (rev_matrix != NULL) string_diff(rev_matrix[j], rev_matrix[i], n, coof);
             string_diff(matrix[j], matrix[i], n, coof);
             if (right != NULL) right[j] -= right[i] * coof;
         }
+
+        if (rev_matrix != NULL) {
+            print_matrix(matrix, n);
+            printf("-------------\n");
+            print_matrix(rev_matrix, n);
+            printf("\n\n\n");
+        }
     }
-    print_matrix(matrix, n);
 }
 
-// Обратный ход метзода Гауса
-double *gauss_return_way(double **matrix, double *right, int n) {
+
+
+// Обратный ход метзода Гаусса
+double *gauss_return_way(double **matrix, double **rev_matrix, double *right, int n) {
     double *answer = calloc(n, sizeof(*answer));
+    printf("Return Way\n");
+
     for (int i = n - 1; i>= 0; i--) {
-        answer[i] = right[i];
+        if (right != NULL) answer[i] = right[i];
+        if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
+        
 
         for (int j = i + 1; j < n; j++) {
+            if (rev_matrix != NULL) {
+                string_diff(rev_matrix[i], rev_matrix[j], n, matrix[i][j] / matrix[i][i]);
+            }
             answer[i] -= matrix[i][j] * answer[j];
         }
+
         answer[i] /= matrix[i][i];
+        if(rev_matrix != NULL) print_matrix(rev_matrix, n);
+        printf("-------\n");
+        print_matrix(matrix, n);
+        printf("\n\n");
     }
+
+    return answer;
 }
 
 // Подсчёт определителя
 double det(double **matrix, int n) {
-    gauss_direct_way(matrix, NULL ,n);
+    gauss_direct_way(matrix, NULL, NULL, n);
 
     double result = 1;
 
@@ -109,12 +152,15 @@ double det(double **matrix, int n) {
     return result;
 }
 
-double *gauss(double **matrix, double *right, int n) {
-    gauss_direct_way(matrix, right, n);
 
-    return gauss_return_way(matrix, right, n);
+// Метод Гаусса
+double *gauss(double **matrix, double *right, int n) {
+    gauss_direct_way(matrix, NULL, right, n);
+
+    return gauss_return_way(matrix, NULL, right, n);
 }
 
+// Копирование матрицы
 double **copy_matrix(double **matrix, int n) {
     double **new_matrix = init_matrix(n);
 
@@ -125,6 +171,24 @@ double **copy_matrix(double **matrix, int n) {
     }
 
     return new_matrix;
+}
+
+
+// Поиск обратной матрицы
+void matrix_reverce(double **matrix, double **rev_matrix, int n) {
+    gauss_direct_way(matrix, rev_matrix, NULL, n);
+    print_matrix(rev_matrix, n);
+    printf("\n");
+    print_matrix(matrix, n);
+
+    gauss_return_way(matrix, rev_matrix, NULL, n);
+}
+
+// Инициализация единичной матрицы
+void init_unit_matrix(double **matrix, int n) {
+    for (int i = 0; i < n; i++) {
+        matrix[i][i] = 1;
+    }
 }
 
 
@@ -139,11 +203,25 @@ int main(int argc, char *argv[]) {
 
     double **matrix = init_matrix(n);
     double **rev_matrix = init_matrix(n);
+    init_unit_matrix(rev_matrix, n);
+    double *right = calloc(n, sizeof(*right));
 
-    if (type == 1) scan_matrix(matrix, n);
+    if (type == 1) scan_matrix(matrix, right, n);
 
-    double determ = det(matrix, n);
+    double **tmp_matrix = copy_matrix(matrix, n);
+    double determ = det(tmp_matrix, n);
+    
+    tmp_matrix = copy_matrix(matrix, n);
+    double *answer = gauss(tmp_matrix, right, n);
 
-    printf("%lf\n", determ);
+    tmp_matrix = copy_matrix(matrix, n);
+    matrix_reverce(tmp_matrix, rev_matrix, n);
 
+    printf("Determ: %lf\n", determ);
+    print_matrix(rev_matrix, n);
+
+    for(int i = 0; i < n; i++) {
+        printf("%lf ", answer[i]);
+    }
+    printf("\n");
 }
