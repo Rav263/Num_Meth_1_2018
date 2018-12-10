@@ -91,21 +91,11 @@ void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n
             }
         }
 
-        //if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
-
         for (int j = i + 1; j < n; j++) {
             double coof = matrix[j][i] / matrix[i][i];        
-            //printf("Coof: %lf\n J: %d\n", coof, j); 
             if (rev_matrix != NULL) string_diff(rev_matrix[j], rev_matrix[i], n, coof);
             string_diff(matrix[j], matrix[i], n, coof);
             if (right != NULL) right[j] -= right[i] * coof;
-        }
-
-        if (rev_matrix != NULL) {
-            print_matrix(matrix, n);
-            printf("-------------\n");
-            print_matrix(rev_matrix, n);
-            printf("\n\n\n");
         }
     }
 }
@@ -115,8 +105,7 @@ void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n
 // Обратный ход метзода Гаусса
 double *gauss_return_way(double **matrix, double **rev_matrix, double *right, int n) {
     double *answer = calloc(n, sizeof(*answer));
-    printf("Return Way\n");
-
+    
     for (int i = n - 1; i>= 0; i--) {
         if (right != NULL) answer[i] = right[i];
         if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
@@ -130,14 +119,98 @@ double *gauss_return_way(double **matrix, double **rev_matrix, double *right, in
         }
 
         answer[i] /= matrix[i][i];
-        if(rev_matrix != NULL) print_matrix(rev_matrix, n);
-        printf("-------\n");
-        print_matrix(matrix, n);
-        printf("\n\n");
     }
 
     return answer;
 }
+
+double d_abs(double a) {
+    return a < 0 ? -a : a;
+}
+
+
+// Поиск максимума по модулю в строке 
+int max_abs(double *string, int start_index, int n) {
+    double max = string[start_index];
+    int max_index = start_index;
+
+    for (int i = start_index; i < n; i++) {
+        max_index = d_abs(string[i]) > d_abs(max) ? i : max_index;
+        max = d_abs(string[i]) > d_abs(max) ? string[i] : max;
+    }
+
+    return max_index;
+}
+
+// Смена столбцов местами
+void swap_col(double **matrix, int index_1, int index_2, int n) {
+    for (int i = 0; i < n; i++) {
+        double tmp = matrix[i][index_1];
+        matrix[i][index_1] = matrix[i][index_2];
+        matrix[i][index_2] = tmp;
+    }
+}
+
+
+// Метод Гаусса с выбором главного элемента прямой ход
+int *mainel_gauss_direct_way(double **matrix, double *right, int n) {
+    int *rev_num = calloc(n, sizeof(*rev_num));
+    
+    for (int i = 0; i < n; i++)
+        rev_num[i] = i;
+    
+    for (int i = 0; i < n - 1; i++) {
+        int max_index = max_abs(matrix[i], i, n);
+
+        swap_col(matrix, i, max_index, n);
+
+        int tmp = rev_num[i];
+        rev_num[i] = rev_num[max_index];
+        rev_num[max_index] = i;
+
+        for (int j = i + 1; j < n; j++) {
+            double coof = matrix[j][i] / matrix[i][i];
+
+            string_diff(matrix[j], matrix[i], n, coof);
+            right[j] -= right[i] * coof;
+        }
+    }
+
+    return rev_num;
+}
+
+// Обратный ход метода Гаусса с выбором главного элемента
+double *mainel_gauss_return_way(double **matrix, double *right, int *rev_num, int n) {
+    double *answer = calloc(n, sizeof(*answer));
+
+    for (int i = n - 1; i >= 0; i--) {
+        answer[i] = right[i];
+
+        for (int j = i + 1; j < n; j++) 
+            answer[i] -= matrix[i][j] * answer[j];
+
+        answer[i] /= matrix[i][i];
+    }
+
+    double *tmp_answer = calloc(n, sizeof(*tmp_answer));
+
+    for (int i = 0; i < n; i++) 
+        tmp_answer[rev_num[i]] = answer[i];
+
+    free(answer);
+    return tmp_answer;
+}
+
+// Метод Гаусса с выбором главного элемента
+double *mainel_gauss(double **matrix, double *right, int n) {
+    int *rev_num = mainel_gauss_direct_way(matrix, right, n);
+
+    double *answer = mainel_gauss_return_way(matrix, right, rev_num, n);
+    free(rev_num);
+
+    return answer;
+}
+
 
 // Подсчёт определителя
 double det(double **matrix, int n) {
@@ -177,9 +250,6 @@ double **copy_matrix(double **matrix, int n) {
 // Поиск обратной матрицы
 void matrix_reverce(double **matrix, double **rev_matrix, int n) {
     gauss_direct_way(matrix, rev_matrix, NULL, n);
-    print_matrix(rev_matrix, n);
-    printf("\n");
-    print_matrix(matrix, n);
 
     gauss_return_way(matrix, rev_matrix, NULL, n);
 }
@@ -189,6 +259,15 @@ void init_unit_matrix(double **matrix, int n) {
     for (int i = 0; i < n; i++) {
         matrix[i][i] = 1;
     }
+}
+
+double *copy_string(double *string, int n) {
+    double *new_string = calloc(n, sizeof(*new_string));
+
+    for (int i = 0; i < n; i++) 
+        new_string[i] = string[i];
+
+    return new_string;
 }
 
 
@@ -212,16 +291,33 @@ int main(int argc, char *argv[]) {
     double determ = det(tmp_matrix, n);
     
     tmp_matrix = copy_matrix(matrix, n);
-    double *answer = gauss(tmp_matrix, right, n);
+    double *tmp_right = copy_string(right, n);
+    double *answer = gauss(tmp_matrix, tmp_right, n);
 
     tmp_matrix = copy_matrix(matrix, n);
     matrix_reverce(tmp_matrix, rev_matrix, n);
+    
+    tmp_matrix = copy_matrix(matrix, n);
+    tmp_right = copy_string(right, n);
+    double *imp_answer = mainel_gauss(matrix, tmp_right, n); 
 
-    printf("Determ: %lf\n", determ);
+    printf("Determ: %lf\n\n", determ);
+    
+    printf("Reverce matrix\n");
     print_matrix(rev_matrix, n);
 
+    printf("\nNormal Gauss: ");
     for(int i = 0; i < n; i++) {
         printf("%lf ", answer[i]);
     }
+    printf("\n\n");
+
+    printf("\nIMP Gauss: ");
+    for (int i = 0; i < n; i++) {
+        printf("%lf ", imp_answer[i]);
+    }
     printf("\n");
+
+
+
 }
