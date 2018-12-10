@@ -45,6 +45,19 @@ void scan_matrix(double **matrix, double *right, int n) {
     }
 }
 
+void scan_file_matrix(char *file_name, double **matrix, double *right, int n) {
+    FILE *file = fopen(file_name, "r");
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            fscanf(file, "%lf", &matrix[i][j]);
+        }
+        
+        fscanf(file, "%lf", &right[i]);
+    }
+    fclose(file);
+}
+
 // Умножение строки на константу
 void string_diff(double *string_1, double *string_2, int n, double coof) {
     for (int i = 0; i < n; i++) {
@@ -70,7 +83,10 @@ void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n
             for (; index < n; index++) {
                 if (matrix[index][i] != 0) break;
             }
-            if (index == n) continue;
+            if (index == n) { 
+                fprintf(stderr, "Wrong Input\n");
+                exit(1);
+            }
 
             double *tmp = matrix[index];
             matrix[index] = matrix[i];
@@ -159,8 +175,13 @@ int *mainel_gauss_direct_way(double **matrix, double *right, int n) {
     for (int i = 0; i < n; i++)
         rev_num[i] = i;
     
-    for (int i = 0; i < n - 1; i++) {
+    for (int i = 0; i < n; i++) {
         int max_index = max_abs(matrix[i], i, n);
+
+        if (matrix[i][max_index] == 0) {
+            fprintf(stderr, "Wrong Input\n");
+            exit(1);
+        }
 
         swap_col(matrix, i, max_index, n);
 
@@ -324,46 +345,55 @@ void count_gauss(double **matrix, double *right, int n) {
     free_matrix(tmp_matrix, n);
 }
 
+void count_mainel_gauss(double **matrix, double *right, int n) {
+    double **tmp_matrix = copy_matrix(matrix, n);
+    double *tmp_right = copy_string(right, n);
 
+    double *answer = mainel_gauss(tmp_matrix, right, n);
+
+    printf("Main element Gauss: ");
+    printf_string(answer, n);
+
+    free(tmp_right);
+    free(answer);
+    free_matrix(tmp_matrix, n);
+}
+
+void generate_matrix(double **matrix, double *right, int n) {
+
+
+}
 
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "Too few arguments!\nUsage ./prog type mtrix_size\n");
+        fprintf(stderr, "Ussage: \n1 -- reverce matrix\n2 -- determinant\n3 -- normal gauss\n4 -- main element gauss\n");
         exit(1);
     }
-
-    int type = atoi(argv[1]); // Чтение со стандартного потока или из файла
-    int n    = atoi(argv[2]); // Размер матрицы
+    int type = atoi(argv[1]);
+    int n    = atoi(argv[type + 1]);
 
     double **matrix = init_matrix(n);
-    double *right = calloc(n, sizeof(*right));
+    double *right   = calloc(n, sizeof(*right));
 
     if (type == 1) scan_matrix(matrix, right, n);
-
-    double **tmp_matrix = copy_matrix(matrix, n);
-    double determ = det(tmp_matrix, n);
-    
-    tmp_matrix = copy_matrix(matrix, n);
-    double *tmp_right = copy_string(right, n);
-    double *answer = gauss(tmp_matrix, tmp_right, n);
-
-    
-    tmp_matrix = copy_matrix(matrix, n);
-    tmp_right = copy_string(right, n);
-    double *imp_answer = mainel_gauss(matrix, tmp_right, n); 
-
-    printf("Determ: %lf\n\n", determ);
-
-    printf("\nNormal Gauss: ");
-    for(int i = 0; i < n; i++) {
-        printf("%lf ", answer[i]);
+    else if (type == 2) scan_file_matrix(argv[2], matrix, right, n);
+    else if (type == 3) {
+        generate_matrix(matrix, right, n);
+        type -= 2;
     }
-    printf("\n\n");
 
-    printf("\nIMP Gauss: ");
-    for (int i = 0; i < n; i++) {
-        printf("%lf ", imp_answer[i]);
+    for (int i = type + 2; i < argc; i++) {
+        int now = atoi(argv[i]);
+
+        if (now == 1) count_rev_matrix(matrix, n);
+        else if (now == 2) count_det(matrix, n);
+        else if (now == 3) count_gauss(matrix, right, n);
+        else if (now == 4) count_mainel_gauss(matrix, right, n);
     }
-    printf("\n");
+
+
+    free(right);
+    free_matrix(matrix, n);
 }
