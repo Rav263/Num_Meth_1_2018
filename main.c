@@ -187,7 +187,7 @@ int *mainel_gauss_direct_way(double **matrix, double *right, int n) {
 
         int tmp = rev_num[i];
         rev_num[i] = rev_num[max_index];
-        rev_num[max_index] = i;
+        rev_num[max_index] = tmp;
 
         for (int j = i + 1; j < n; j++) {
             double coof = matrix[j][i] / matrix[i][i];
@@ -271,7 +271,7 @@ double **copy_matrix(double **matrix, int n) {
 // Поиск обратной матрицы
 void matrix_reverce(double **matrix, double **rev_matrix, int n) {
     gauss_direct_way(matrix, rev_matrix, NULL, n);
-
+    
     gauss_return_way(matrix, rev_matrix, NULL, n);
 }
 
@@ -359,11 +359,105 @@ void count_mainel_gauss(double **matrix, double *right, int n) {
     free_matrix(tmp_matrix, n);
 }
 
-void generate_matrix(double **matrix, double *right, int n) {
+
+int generate_matrix(double **matrix, double *right, double x) {
+    int n = 30;
+    int M = 3;
+    double qm = 1.001 - 2 * M * 0.001;
 
 
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= n; j++) {
+            if (i == j) matrix[i - 1][j - 1] = pow(qm - 1, i + j);
+            else matrix[i - 1][j - 1] = pow(qm, i + j) + 0.1 * (i - j);
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        right[i - 1] = x * exp(x / i) * cos(x / i);
+    }
+
+    return n;
 }
 
+double *next_iteration(double **matrix, double *x, double *right, double w, int n) {
+    double *new_x = calloc(n, sizeof(*new_x));
+
+    for (int i = 0; i < n; i++) {
+        double fir = 0;
+        
+        for (int j = 0; j < i; j++) {
+            fir += matrix[j][i] * new_x[j];
+        }
+
+        double sec = 0;
+
+        for (int j = i; j < n; j++) {
+            sec += matrix[j][i] * x[j];
+        }
+
+        new_x[i] = x[i] + w / matrix[i][i] * (right[i] - fir - sec);
+    }
+
+    free(x);
+    return new_x;
+}
+
+
+double norma(double **matrix, double *right, double *x, int n) {
+    double *new_f = copy_string(right, n);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            new_f[i] -= matrix[i][j] * x[j];
+        }
+    }
+
+    double norm = 0;
+
+    for (int i = 0; i < n; i++) {
+        norm += new_f[i] * new_f[i];
+    }
+
+    norm = sqrt(norm);
+
+    free(new_f);
+
+    return norm;
+}
+
+
+double *iteration_method(double **matrix, double *right, double w, double eps, int max_iter, int n) {
+    double *x = calloc(n, sizeof(*x));
+
+    for (int i = 0; i < max_iter; i++) {
+        x = next_iteration(matrix, x, right, w, n);
+
+        double norm = norma(matrix, right, x, n);
+
+        if (norm < eps) {
+            fprintf(stderr, "Number of iterations: %d\n", i);
+            break;
+        }
+    }
+
+    return x;
+}
+
+void count_iter(double **matrix, double *right, int n) {
+    int max_iter = 10000;
+    double eps = 0.1;
+    printf("Please enter max iterations and eps:");
+    scanf("%d%lf", &max_iter, &eps);
+
+    for (double w = 0.1; w < 2; w += 0.1) {
+        double *x = iteration_method(matrix, right, w, eps, max_iter, n);
+
+        printf("W: %lf, answ: ", w);
+        printf_string(x, n);
+        free(x);
+    }
+}
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -372,7 +466,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     int type = atoi(argv[1]);
-    int n    = atoi(argv[type + 1]);
+    int n = 0;
+    if (type != 3) n= atoi(argv[type + 1]);
+    else  n = 30;
 
     double **matrix = init_matrix(n);
     double *right   = calloc(n, sizeof(*right));
@@ -380,7 +476,11 @@ int main(int argc, char *argv[]) {
     if (type == 1) scan_matrix(matrix, right, n);
     else if (type == 2) scan_file_matrix(argv[2], matrix, right, n);
     else if (type == 3) {
-        generate_matrix(matrix, right, n);
+        double x = atof(argv[2]);
+        
+
+        n = generate_matrix(matrix, right, x);
+
         type -= 2;
     }
 
@@ -391,6 +491,7 @@ int main(int argc, char *argv[]) {
         else if (now == 2) count_det(matrix, n);
         else if (now == 3) count_gauss(matrix, right, n);
         else if (now == 4) count_mainel_gauss(matrix, right, n);
+        else if (now == 5) count_iter(matrix, right, n);
     }
 
 
