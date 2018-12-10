@@ -270,6 +270,62 @@ double *copy_string(double *string, int n) {
     return new_string;
 }
 
+void printf_string(double *string, int n) {
+    for (int i = 0; i < n; i++) 
+        printf("%lf ", string[i]);
+    printf("\n");
+}
+
+void free_matrix(double **matrix, int n) {
+    for (int i = 0; i < n; i++) 
+        free(matrix[i]);
+    free(matrix);
+}
+
+
+void count_rev_matrix(double **matrix, int n) {
+    double **rev_matrix = init_matrix(n);
+    init_unit_matrix(rev_matrix, n);
+    
+    double **tmp_matrix = copy_matrix(matrix, n);
+    matrix_reverce(tmp_matrix, rev_matrix, n);
+
+    printf("Reverce matrix:\n");
+    print_matrix(rev_matrix, n);
+    printf("---------------\n");
+
+    free_matrix(rev_matrix, n);
+    free_matrix(tmp_matrix, n);
+}
+
+
+void count_det(double **matrix, int n) {
+    double **tmp_matrix = copy_matrix(matrix, n);
+
+    double deter = det(tmp_matrix, n);
+
+    printf("Determinant: %lf\n\n", deter);
+
+    free_matrix(tmp_matrix, n);
+}
+
+void count_gauss(double **matrix, double *right, int n) {
+    double **tmp_matrix = copy_matrix(matrix, n);
+    double *tmp_right = copy_string(right, n);
+
+    double *answer = gauss(tmp_matrix, right, n);
+
+    printf("Gauss answer: ");
+
+    printf_string(answer, n);
+
+    free(tmp_right);
+    free(answer);
+    free_matrix(tmp_matrix, n);
+}
+
+
+
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -281,8 +337,6 @@ int main(int argc, char *argv[]) {
     int n    = atoi(argv[2]); // Размер матрицы
 
     double **matrix = init_matrix(n);
-    double **rev_matrix = init_matrix(n);
-    init_unit_matrix(rev_matrix, n);
     double *right = calloc(n, sizeof(*right));
 
     if (type == 1) scan_matrix(matrix, right, n);
@@ -294,17 +348,12 @@ int main(int argc, char *argv[]) {
     double *tmp_right = copy_string(right, n);
     double *answer = gauss(tmp_matrix, tmp_right, n);
 
-    tmp_matrix = copy_matrix(matrix, n);
-    matrix_reverce(tmp_matrix, rev_matrix, n);
     
     tmp_matrix = copy_matrix(matrix, n);
     tmp_right = copy_string(right, n);
     double *imp_answer = mainel_gauss(matrix, tmp_right, n); 
 
     printf("Determ: %lf\n\n", determ);
-    
-    printf("Reverce matrix\n");
-    print_matrix(rev_matrix, n);
 
     printf("\nNormal Gauss: ");
     for(int i = 0; i < n; i++) {
@@ -317,7 +366,4 @@ int main(int argc, char *argv[]) {
         printf("%lf ", imp_answer[i]);
     }
     printf("\n");
-
-
-
 }
