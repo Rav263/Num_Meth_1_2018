@@ -45,6 +45,8 @@ void scan_matrix(double **matrix, double *right, int n) {
     }
 }
 
+
+// Чтение матрицы из файла
 void scan_file_matrix(char *file_name, double **matrix, double *right, int n) {
     FILE *file = fopen(file_name, "r");
 
@@ -73,10 +75,19 @@ void string_mult(double *string, int n, double coof) {
     }
 }
 
+// Печать строки
+void printf_string(double *string, int n, int accur) {
+    for (int i = 0; i < n; i++) 
+        printf("%*.*lf ", accur + 3, accur, string[i]);
+    printf("\n");
+}
 
-// Прямой ход метода Гауса
-void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n) {
-    for (int i = 0; i < n - 1; i++) {
+
+
+// Прямой ход метода Гаусса
+double *gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n) {
+    double *deter = calloc(n, sizeof(*deter));
+    for (int i = 0; i < n; i++) {
         if (matrix[i][i] == 0) {
             int index = i + 1;
 
@@ -107,39 +118,49 @@ void gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n
             }
         }
 
+        if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
+        if (right != NULL) right[i] /= matrix[i][i];
+        if (rev_matrix == NULL && right == NULL) deter[i] = matrix[i][i];
+        string_mult(matrix[i], n, 1 / matrix[i][i]);
+
         for (int j = i + 1; j < n; j++) {
-            double coof = matrix[j][i] / matrix[i][i];        
+            double coof = matrix[j][i];        
+            
+            //SOME CHANGES
             if (rev_matrix != NULL) string_diff(rev_matrix[j], rev_matrix[i], n, coof);
             string_diff(matrix[j], matrix[i], n, coof);
             if (right != NULL) right[j] -= right[i] * coof;
         }
     }
+
+    if (rev_matrix != NULL || right != NULL) free(deter);
+
+    return deter;
 }
 
 
 
-// Обратный ход метзода Гаусса
+// Обратный ход метода Гаусса
 double *gauss_return_way(double **matrix, double **rev_matrix, double *right, int n) {
     double *answer = calloc(n, sizeof(*answer));
     
-    for (int i = n - 1; i>= 0; i--) {
+    for (int i = n - 1; i >= 0; i--) {
         if (right != NULL) answer[i] = right[i];
-        if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
-        
 
         for (int j = i + 1; j < n; j++) {
             if (rev_matrix != NULL) {
-                string_diff(rev_matrix[i], rev_matrix[j], n, matrix[i][j] / matrix[i][i]);
+                string_diff(rev_matrix[i], rev_matrix[j], n, matrix[i][j]);
             }
-            answer[i] -= matrix[i][j] * answer[j];
+            if (right != NULL) answer[i] -= matrix[i][j] * answer[j];
         }
 
-        answer[i] /= matrix[i][i];
+        if (right != NULL) answer[i] /= matrix[i][i];
     }
 
     return answer;
 }
 
+// Модульвещественного числа
 double d_abs(double a) {
     return a < 0 ? -a : a;
 }
@@ -235,13 +256,13 @@ double *mainel_gauss(double **matrix, double *right, int n) {
 
 // Подсчёт определителя
 double det(double **matrix, int n) {
-    gauss_direct_way(matrix, NULL, NULL, n);
+    double *deter = gauss_direct_way(matrix, NULL, NULL, n);
 
     double result = 1;
 
-    for (int i = 0; i < n; i++){
-        result *= matrix[i][i];
-    }
+    for (int i = 0; i < n; i++)
+        result *= deter[i];
+    
 
     return result;
 }
@@ -282,6 +303,7 @@ void init_unit_matrix(double **matrix, int n) {
     }
 }
 
+// Копирование строки
 double *copy_string(double *string, int n) {
     double *new_string = calloc(n, sizeof(*new_string));
 
@@ -291,12 +313,7 @@ double *copy_string(double *string, int n) {
     return new_string;
 }
 
-void printf_string(double *string, int n, int accur) {
-    for (int i = 0; i < n; i++) 
-        printf("%*.*lf ", accur + 3, accur, string[i]);
-    printf("\n");
-}
-
+// Очищение памяти выделенной под матрицу
 void free_matrix(double **matrix, int n) {
     for (int i = 0; i < n; i++) 
         free(matrix[i]);
@@ -304,6 +321,7 @@ void free_matrix(double **matrix, int n) {
 }
 
 
+// Оболочка для поиска обратной матрицы
 void count_rev_matrix(double **matrix, int n, int accur) {
     double **rev_matrix = init_matrix(n);
     init_unit_matrix(rev_matrix, n);
@@ -319,7 +337,7 @@ void count_rev_matrix(double **matrix, int n, int accur) {
     free_matrix(tmp_matrix, n);
 }
 
-
+// Оболочка для подсчёта определителя матрицы
 void count_det(double **matrix, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
 
@@ -330,11 +348,12 @@ void count_det(double **matrix, int n, int accur) {
     free_matrix(tmp_matrix, n);
 }
 
+// Оболочка для метода Гаусса
 void count_gauss(double **matrix, double *right, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double *tmp_right = copy_string(right, n);
 
-    double *answer = gauss(tmp_matrix, right, n);
+    double *answer = gauss(tmp_matrix, tmp_right, n);
 
     printf("Gauss answer: ");
 
@@ -345,6 +364,8 @@ void count_gauss(double **matrix, double *right, int n, int accur) {
     free_matrix(tmp_matrix, n);
 }
 
+
+// Оболочка для подсчёта метода Гаусса с выбором главного элемента
 void count_mainel_gauss(double **matrix, double *right, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double *tmp_right = copy_string(right, n);
@@ -360,6 +381,7 @@ void count_mainel_gauss(double **matrix, double *right, int n, int accur) {
 }
 
 
+// Генерация матрицы по формулам из приложения 2
 int generate_matrix(double **matrix, double *right, double x, int n) {
     int M = 3;
     double qm = 1.001 - 2 * M * 0.001;
@@ -368,7 +390,7 @@ int generate_matrix(double **matrix, double *right, double x, int n) {
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
             if (i == j) matrix[i - 1][j - 1] = pow(qm - 1, i + j);
-            else matrix[i - 1][j - 1] = pow(qm, i + j) + 0.1 * (i - j);
+            else matrix[i - 1][j - 1] = pow(qm, i + j) + 0.1 * (j - i);
         }
     }
 
@@ -379,6 +401,7 @@ int generate_matrix(double **matrix, double *right, double x, int n) {
     return n;
 }
 
+// Подсчёт следующей итерации метода верхней релаксации
 double *next_iteration(double **matrix, double *x, double *right, double w, int n) {
     double *new_x = calloc(n, sizeof(*new_x));
 
@@ -386,13 +409,13 @@ double *next_iteration(double **matrix, double *x, double *right, double w, int 
         double fir = 0;
         
         for (int j = 0; j < i; j++) {
-            fir += matrix[j][i] * new_x[j];
+            fir += matrix[i][j] * new_x[j];
         }
 
         double sec = 0;
 
         for (int j = i; j < n; j++) {
-            sec += matrix[j][i] * x[j];
+            sec += matrix[i][j] * x[j];
         }
 
         new_x[i] = x[i] + w / matrix[i][i] * (right[i] - fir - sec);
@@ -402,7 +425,7 @@ double *next_iteration(double **matrix, double *x, double *right, double w, int 
     return new_x;
 }
 
-
+// Евклидова норма векора для оценки погрешности
 double norma(double **matrix, double *right, double *x, int n) {
     double *new_f = copy_string(right, n);
 
@@ -425,7 +448,7 @@ double norma(double **matrix, double *right, double *x, int n) {
     return norm;
 }
 
-
+// Итерационный метод
 double *iteration_method(double **matrix, double *right, double w, double eps, int max_iter, int n) {
     double *x = calloc(n, sizeof(*x));
 
@@ -443,6 +466,7 @@ double *iteration_method(double **matrix, double *right, double w, double eps, i
     return x;
 }
 
+// Оболочка итерационного метода
 void count_iter(double **matrix, double *right, int n, int accur) {
     int max_iter = 10000;
     double eps = 0.1;
@@ -460,6 +484,8 @@ void count_iter(double **matrix, double *right, int n, int accur) {
     }
 }
 
+
+// L - норма матрицы
 double l_norm(double **matrix, int n) {
     double *sums = calloc(n, sizeof (*sums));
     for (int i = 0; i < n; i++) {
@@ -475,7 +501,7 @@ double l_norm(double **matrix, int n) {
     return max;
 }
 
-
+// Оболочка для подсчёта L-нормы матрицы
 void count_l_norm(double **matrix, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double **rev_matrix = init_matrix(n);
@@ -487,7 +513,8 @@ void count_l_norm(double **matrix, int n, int accur) {
     free(tmp_matrix);
 
     double norm_1 = l_norm(matrix, n);
-    double norm_2 = l_norm(rev_matrix, n);
+    double norm_2 = 
+        l_norm(rev_matrix, n);
 
     double norm = norm_1 * norm_2;
 
@@ -507,7 +534,7 @@ int main(int argc, char *argv[]) {
     int type = atoi(argv[1]);
     int n = 0;
     if (type != 3) n= atoi(argv[type + 1]);
-    else  n = 10;
+    else  n = 30;
 
     double **matrix = init_matrix(n);
     double *right   = calloc(n, sizeof(*right));
@@ -523,10 +550,6 @@ int main(int argc, char *argv[]) {
         
 
         n = generate_matrix(matrix, right, x, n);
-
-        print_matrix(matrix, n, accur);
-        printf("\n\n");
-        printf_string(right, n, accur);
 
         type -= 2;
     }
