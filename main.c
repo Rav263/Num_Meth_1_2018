@@ -477,7 +477,23 @@ double l_norm(double **matrix, int n) {
 
 
 void count_l_norm(double **matrix, int n, int accur) {
+    double **tmp_matrix = copy_matrix(matrix, n);
+    double **rev_matrix = init_matrix(n);
+
+    init_unit_matrix(rev_matrix, n);
     
+    matrix_reverce(tmp_matrix, rev_matrix, n);
+
+    free(tmp_matrix);
+
+    double norm_1 = l_norm(matrix, n);
+    double norm_2 = l_norm(rev_matrix, n);
+
+    double norm = norm_1 * norm_2;
+
+    printf("Condition number of matrix: %*.*lf\n", accur + 3, accur, norm);
+
+    free(rev_matrix);
 }
 
 
@@ -491,7 +507,7 @@ int main(int argc, char *argv[]) {
     int type = atoi(argv[1]);
     int n = 0;
     if (type != 3) n= atoi(argv[type + 1]);
-    else  n = 5;
+    else  n = 10;
 
     double **matrix = init_matrix(n);
     double *right   = calloc(n, sizeof(*right));
@@ -524,6 +540,7 @@ int main(int argc, char *argv[]) {
         else if (now == 3) count_gauss(matrix, right, n, accur);
         else if (now == 4) count_mainel_gauss(matrix, right, n, accur);
         else if (now == 5) count_iter(matrix, right, n, accur);
+        else if (now == 6) count_l_norm(matrix, n, accur);
     }
 
 
