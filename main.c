@@ -24,10 +24,10 @@ double **init_matrix(int n) {
 }
 
 // печать матрицы
-void print_matrix(double **matrix, int n) {
+void print_matrix(double **matrix, int n, int accur) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            printf("%lf ", matrix[i][j]);
+            printf("%*.*lf ",accur + 3, accur, matrix[i][j]);
         }
         printf("\n");
     }
@@ -291,9 +291,9 @@ double *copy_string(double *string, int n) {
     return new_string;
 }
 
-void printf_string(double *string, int n) {
+void printf_string(double *string, int n, int accur) {
     for (int i = 0; i < n; i++) 
-        printf("%lf ", string[i]);
+        printf("%*.*lf ", accur + 3, accur, string[i]);
     printf("\n");
 }
 
@@ -304,7 +304,7 @@ void free_matrix(double **matrix, int n) {
 }
 
 
-void count_rev_matrix(double **matrix, int n) {
+void count_rev_matrix(double **matrix, int n, int accur) {
     double **rev_matrix = init_matrix(n);
     init_unit_matrix(rev_matrix, n);
     
@@ -312,7 +312,7 @@ void count_rev_matrix(double **matrix, int n) {
     matrix_reverce(tmp_matrix, rev_matrix, n);
 
     printf("Reverce matrix:\n");
-    print_matrix(rev_matrix, n);
+    print_matrix(rev_matrix, n, accur);
     printf("---------------\n");
 
     free_matrix(rev_matrix, n);
@@ -320,17 +320,17 @@ void count_rev_matrix(double **matrix, int n) {
 }
 
 
-void count_det(double **matrix, int n) {
+void count_det(double **matrix, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
 
     double deter = det(tmp_matrix, n);
 
-    printf("Determinant: %lf\n\n", deter);
+    printf("Determinant: %*.*lf\n\n", accur + 3, accur, deter);
 
     free_matrix(tmp_matrix, n);
 }
 
-void count_gauss(double **matrix, double *right, int n) {
+void count_gauss(double **matrix, double *right, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double *tmp_right = copy_string(right, n);
 
@@ -338,21 +338,21 @@ void count_gauss(double **matrix, double *right, int n) {
 
     printf("Gauss answer: ");
 
-    printf_string(answer, n);
+    printf_string(answer, n, accur);
 
     free(tmp_right);
     free(answer);
     free_matrix(tmp_matrix, n);
 }
 
-void count_mainel_gauss(double **matrix, double *right, int n) {
+void count_mainel_gauss(double **matrix, double *right, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double *tmp_right = copy_string(right, n);
 
     double *answer = mainel_gauss(tmp_matrix, right, n);
 
     printf("Main element Gauss: ");
-    printf_string(answer, n);
+    printf_string(answer, n, accur);
 
     free(tmp_right);
     free(answer);
@@ -360,8 +360,7 @@ void count_mainel_gauss(double **matrix, double *right, int n) {
 }
 
 
-int generate_matrix(double **matrix, double *right, double x) {
-    int n = 30;
+int generate_matrix(double **matrix, double *right, double x, int n) {
     int M = 3;
     double qm = 1.001 - 2 * M * 0.001;
 
@@ -444,20 +443,44 @@ double *iteration_method(double **matrix, double *right, double w, double eps, i
     return x;
 }
 
-void count_iter(double **matrix, double *right, int n) {
+void count_iter(double **matrix, double *right, int n, int accur) {
     int max_iter = 10000;
     double eps = 0.1;
-    printf("Please enter max iterations and eps:");
-    scanf("%d%lf", &max_iter, &eps);
+    printf("Please enter max iterations: ");
+    scanf("%d", &max_iter);
+    printf("Please enter eps: ");
+    scanf("%lf", &eps);
 
     for (double w = 0.1; w < 2; w += 0.1) {
         double *x = iteration_method(matrix, right, w, eps, max_iter, n);
 
-        printf("W: %lf, answ: ", w);
-        printf_string(x, n);
+        printf("W: %*.*lf, answ: ", accur + 3, accur, w);
+        printf_string(x, n, accur);
         free(x);
     }
 }
+
+double l_norm(double **matrix, int n) {
+    double *sums = calloc(n, sizeof (*sums));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            sums[i] += d_abs(matrix[i][j]);
+        }
+    }
+
+    double max = sums[max_abs(sums, 0, n)];
+    
+    free(sums);
+
+    return max;
+}
+
+
+void count_l_norm(double **matrix, int n, int accur) {
+    
+}
+
+
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -468,10 +491,14 @@ int main(int argc, char *argv[]) {
     int type = atoi(argv[1]);
     int n = 0;
     if (type != 3) n= atoi(argv[type + 1]);
-    else  n = 30;
+    else  n = 5;
 
     double **matrix = init_matrix(n);
     double *right   = calloc(n, sizeof(*right));
+
+    int accur;
+    printf("Please enter accurate: ");
+    scanf("%d", &accur);
 
     if (type == 1) scan_matrix(matrix, right, n);
     else if (type == 2) scan_file_matrix(argv[2], matrix, right, n);
@@ -479,19 +506,24 @@ int main(int argc, char *argv[]) {
         double x = atof(argv[2]);
         
 
-        n = generate_matrix(matrix, right, x);
+        n = generate_matrix(matrix, right, x, n);
+
+        print_matrix(matrix, n, accur);
+        printf("\n\n");
+        printf_string(right, n, accur);
 
         type -= 2;
     }
 
+
     for (int i = type + 2; i < argc; i++) {
         int now = atoi(argv[i]);
 
-        if (now == 1) count_rev_matrix(matrix, n);
-        else if (now == 2) count_det(matrix, n);
-        else if (now == 3) count_gauss(matrix, right, n);
-        else if (now == 4) count_mainel_gauss(matrix, right, n);
-        else if (now == 5) count_iter(matrix, right, n);
+        if (now == 1) count_rev_matrix(matrix, n, accur);
+        else if (now == 2) count_det(matrix, n, accur);
+        else if (now == 3) count_gauss(matrix, right, n, accur);
+        else if (now == 4) count_mainel_gauss(matrix, right, n, accur);
+        else if (now == 5) count_iter(matrix, right, n, accur);
     }
 
 
