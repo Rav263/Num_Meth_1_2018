@@ -88,8 +88,13 @@ void printf_string(double *string, int n, int accur) {
 double *gauss_direct_way(double **matrix, double **rev_matrix, double *right, int n) {
     double *deter = calloc(n, sizeof(*deter));
     for (int i = 0; i < n; i++) {
+        
+        double mult_coof = 1;
+
         if (matrix[i][i] == 0) {
             int index = i + 1;
+
+            mult_coof = -1;
 
             for (; index < n; index++) {
                 if (matrix[index][i] != 0) break;
@@ -98,6 +103,7 @@ double *gauss_direct_way(double **matrix, double **rev_matrix, double *right, in
                 fprintf(stderr, "Wrong Input\n");
                 exit(1);
             }
+            
 
             double *tmp = matrix[index];
             matrix[index] = matrix[i];
@@ -120,7 +126,7 @@ double *gauss_direct_way(double **matrix, double **rev_matrix, double *right, in
 
         if (rev_matrix != NULL) string_mult(rev_matrix[i], n, 1 / matrix[i][i]);
         if (right != NULL) right[i] /= matrix[i][i];
-        if (rev_matrix == NULL && right == NULL) deter[i] = matrix[i][i];
+        if (rev_matrix == NULL && right == NULL) deter[i] = matrix[i][i] * mult_coof;
         string_mult(matrix[i], n, 1 / matrix[i][i]);
 
         for (int j = i + 1; j < n; j++) {
@@ -262,7 +268,7 @@ double det(double **matrix, int n) {
 
     for (int i = 0; i < n; i++)
         result *= deter[i];
-    
+    free(deter);
 
     return result;
 }
@@ -370,7 +376,7 @@ void count_mainel_gauss(double **matrix, double *right, int n, int accur) {
     double **tmp_matrix = copy_matrix(matrix, n);
     double *tmp_right = copy_string(right, n);
 
-    double *answer = mainel_gauss(tmp_matrix, right, n);
+    double *answer = mainel_gauss(tmp_matrix, tmp_right, n);
 
     printf("Main element Gauss: ");
     printf_string(answer, n, accur);
@@ -533,8 +539,11 @@ int main(int argc, char *argv[]) {
     }
     int type = atoi(argv[1]);
     int n = 0;
-    if (type != 3) n= atoi(argv[type + 1]);
-    else  n = 30;
+    if (type != 3) n = atoi(argv[type + 1]);
+    else  {
+        printf("Please enter matrix size: ");
+        scanf("%d", &n);
+    }
 
     double **matrix = init_matrix(n);
     double *right   = calloc(n, sizeof(*right));
@@ -548,8 +557,9 @@ int main(int argc, char *argv[]) {
     else if (type == 3) {
         double x = atof(argv[2]);
         
-
         n = generate_matrix(matrix, right, x, n);
+    
+        print_matrix(matrix, n, accur);
 
         type -= 2;
     }
